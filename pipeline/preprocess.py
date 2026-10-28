@@ -3,6 +3,8 @@ from typing import Tuple
 from sklearn.model_selection import train_test_split
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
 
 CATEGORICAL = ["protocol_type", "service", "flag"]
 TARGET = "class"
@@ -24,13 +26,25 @@ def preprocess(df: pd.DataFrame) -> Tuple:
         X, y, test_size=0.25, random_state=42, stratify=y
     )
 
+#Added simple imputing for missing values with median filling for numericals and constant
+#for categoricals
     preproc = ColumnTransformer(
         transformers=[
-            ("num", StandardScaler(with_mean=False), num_cols),       # sparse-friendly
-            ("cat", OneHotEncoder(handle_unknown="ignore"), cat_cols),
+            ("num", Pipeline([
+                ("imputer", SimpleImputer(strategy="median")),
+                ("scaler", StandardScaler(with_mean=False)),
+            ]), num_cols),
+
+            ("cat", Pipeline([
+                ("imputer", SimpleImputer(
+                    strategy="constant",
+                    fill_value="missing"
+                )),
+                ("encoder", OneHotEncoder(handle_unknown="ignore")),
+            ]), cat_cols),
         ],
         remainder="drop",
-        sparse_threshold=0.3,   # keep it sparse if many OHE cols
+        sparse_threshold=0.3,
     )
 
     # NOTE: we *fit* this in model.train_model to avoid leakage.
