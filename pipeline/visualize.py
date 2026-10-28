@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import (
-    ConfusionMatrixDisplay, confusion_matrix, roc_curve, auc, precision_recall_curve
+    ConfusionMatrixDisplay, confusion_matrix, roc_curve, auc, precision_recall_curve, precision_score, recall_score, f1_score
 )
 
 def _ensure(outdir: str):
@@ -88,3 +88,41 @@ def make_plots(model, X_test, y_test, df_full, outdir: str):
             plt.close()
     except Exception:
         pass
+
+ # Threshold sweep
+    thresholds = np.arange(0.05, 1.00, 0.05)
+
+    precisions = []
+    recalls = []
+    f1_scores = []
+
+    for threshold in thresholds:
+        y_threshold = (y_proba >= threshold).astype(int)
+
+        precisions.append(
+            precision_score(y_test, y_threshold, zero_division=0)
+        )
+        recalls.append(
+            recall_score(y_test, y_threshold, zero_division=0)
+        )
+        f1_scores.append(
+            f1_score(y_test, y_threshold, zero_division=0)
+        )
+
+    plt.figure(figsize=(8, 5))
+    plt.plot(thresholds, precisions, label="Precision")
+    plt.plot(thresholds, recalls, label="Recall")
+    plt.plot(thresholds, f1_scores, label="F1-score")
+
+    plt.xlabel("Classification threshold")
+    plt.ylabel("Score")
+    plt.title("Performance by classification threshold")
+    plt.ylim(0, 1.05)
+    plt.legend()
+    plt.grid(alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(
+        os.path.join(outdir, "threshold_sweep.png"),
+        dpi=150
+    )
+    plt.close()
